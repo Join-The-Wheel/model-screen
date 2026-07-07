@@ -34,7 +34,7 @@
 </head>
 <body>
 <main>
-<nav><a href="./">← Try the screen</a> <a href="methodology.html">Methodology</a> <a href="https://github.com/Join-The-Wheel/model-screen">Data &amp; source</a></nav>
+<nav><a href="./">← Try the screen</a> <a href="methodology.html">Methodology</a></nav>
 
 <h1>FAQ</h1>
 <p class="sub">Short answers, with links into the <a href="methodology.html">full methodology</a> where the detail lives.</p>
@@ -110,7 +110,7 @@
 
 <details>
 <summary>What does "score at source (withheld)" mean?</summary>
-<div><p>Some trackers publish scores under access terms that don't permit republishing. For those rows we keep the judged gloss (what the result demonstrates) and link you to the source for the number itself, instead of storing it. 32 of the current 394 rows work this way.</p></div>
+<div><p>Some trackers publish scores under access terms that don't permit republishing. For those rows we keep the judged gloss (what the result demonstrates) and link you to the source for the number itself, instead of storing it. 34 of the current 492 rows work this way.</p></div>
 </details>
 
 <details>
@@ -146,17 +146,17 @@
 
 <details>
 <summary>Where does the data come from?</summary>
-<div><p>For each covered release: the vendor's announcement, the model card / tech report, and third-party trackers and leaderboards that measured it. Each published claim becomes one row with a judged plain-language gloss, a direction (favorable / mixed / adverse), a weight, its source class, and its URL. The whole corpus is one open file — <a href="https://github.com/Join-The-Wheel/model-screen/blob/main/data/corpus.json"><code>data/corpus.json</code></a> — currently 394 rows across 24 releases. <a href="methodology.html#corpus">Methodology §1</a>.</p></div>
+<div><p>For each covered release: the vendor's announcement, the model card / tech report, and third-party trackers and leaderboards that measured it. Each published claim becomes one row with a judged plain-language gloss, a direction (favorable / mixed / adverse), a weight, its source class, and its URL. The whole corpus is one open file served with this page — <a href="data/corpus.json"><code>data/corpus.json</code></a> — currently 492 rows across 37 releases. <a href="methodology.html#corpus">Methodology §1</a>.</p></div>
 </details>
 
 <details>
 <summary>How fresh is it, and what happens when a new model ships?</summary>
-<div><p>The data date is shown in the widget (and in <code>corpus.json → generated</code>). The corpus refreshes as tagged releases of this repo; a model released after the data date doesn't exist here yet, and the results will say so rather than guess.</p></div>
+<div><p>The data date is shown in the widget (and in <code>corpus.json → generated</code>). The corpus refreshes as versioned updates; a model released after the data date doesn't exist here yet, and the results will say so rather than guess.</p></div>
 </details>
 
 <details>
 <summary>Vendors game benchmarks. How do you handle hype?</summary>
-<div><p>Four counterweights: every row is labeled by <em>who measured it</em>, and third-party measurements outrank vendor claims in judged weight; vendor numbers get skeptical glosses at judging time (a vendor's "internal benchmark, unreproducible" is recorded as exactly that); adverse evidence is amplified 1.6×; and the source badge is on every line so you can discount vendor rows yourself. What we can't do is fix the underlying supply — roughly half of all published evidence is vendor-reported, which is exactly why the last step is always "test before you trust."</p></div>
+<div><p>Four counterweights: every row is labeled by <em>who measured it</em>, and third-party measurements outrank vendor claims in judged weight; vendor numbers get skeptical glosses at judging time (a vendor's "internal benchmark, unreproducible" is recorded as exactly that); adverse evidence is amplified 1.6×; and the source badge is on every line so you can discount vendor rows yourself. What we can't do is fix the underlying supply — roughly two-thirds of all published evidence is vendor-reported, which is exactly why the last step is always "test before you trust."</p></div>
 </details>
 
 <details>
@@ -180,25 +180,20 @@
 
 <details>
 <summary>Can I put this on my own site?</summary>
-<div><p>Not yet. This page is the supported surface for now — third-party embedding isn't offered while the tool is pre-1.0 (the data format, widget API and licensing are still settling). If you'd like to be told when that changes, <a href="https://github.com/Join-The-Wheel/model-screen">watch the repo</a>.</p></div>
-</details>
-
-<details>
-<summary>I tested a model. How do I feed that back?</summary>
-<div><p><a href="https://github.com/Join-The-Wheel/model-screen/issues/new">Open a field report</a> — one sentence about what you used it for and how it went is enough. Real-workload reports are the highest-value evidence type there is (they're the one thing vendors can't publish), and they feed the next corpus refresh. Never required.</p></div>
+<div><p>Not yet. This page is the supported surface for now — third-party embedding isn't offered while the tool is pre-1.0 (the data format, widget API and licensing are still settling). That may change after 1.0.</p></div>
 </details>
 
 <details>
 <summary>Can I use this with my own models or my own evidence?</summary>
-<div><p>The corpus is an open JSON file with a documented row format, and the widget just reads whatever's in <code>data/</code> — so yes, a fork with your own judged rows works today. The upstream project this tool grew from is exactly that idea generalized: define your own benchmark, screen releases against it. If that's what you need, watch the repo.</p></div>
+<div><p>Not yet through this page. The project this tool grew from is exactly that idea generalized — define your own benchmark, screen releases against it — and a self-serve version of that is where this is headed.</p></div>
 </details>
 
 <details>
 <summary>What's the license?</summary>
-<div><p>MIT, provisionally — the upstream project's open-core licensing decision may adjust this before v1.0. The evidence corpus's third-party scores stay with their sources (that's the "withheld" mechanism), so the repo never redistributes anything it shouldn't.</p></div>
+<div><p>MIT, provisionally — the upstream project's open-core licensing decision may adjust this before v1.0. The evidence corpus's third-party scores stay with their sources (that's the "withheld" mechanism), so this site never redistributes anything it shouldn't.</p></div>
 </details>
 
-<p class="muted" style="margin-top:2.5rem">Still unanswered? <a href="https://github.com/Join-The-Wheel/model-screen/issues/new">Open an issue</a> — unanswered questions are FAQ bugs.</p>
+<p class="muted" style="margin-top:2.5rem">Unanswered questions are FAQ bugs — this page grows as they come in.</p>
 </main>
 </body>
 </html>

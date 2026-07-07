@@ -1,12 +1,10 @@
 // <model-screen> — AI-model screening widget (custom element).
 // Serves the hosted screen at https://join-the-wheel.github.io/model-screen —
 // third-party embedding is not offered pre-1.0.
-// Everything runs in the visitor's browser: the matcher model (~34MB, cached)
-// downloads only on first use; the visitor's text never leaves the page.
-// Data + methodology: https://github.com/Join-The-Wheel/model-screen
+// Default tier runs in the visitor's browser: the matcher model (~34MB,
+// cached) downloads only on first use; the visitor's text never leaves the page.
 
 const DATA_BASE = new URL('../data/', import.meta.url).href;
-const REPO = 'https://github.com/Join-The-Wheel/model-screen';
 const SITE = 'https://join-the-wheel.github.io/model-screen';
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
@@ -106,7 +104,6 @@ const CSS = `
   summary { font-size:13px; color:var(--muted); cursor:pointer; }
   summary:hover { color:var(--accent); }
   .none { color:var(--muted); font-size:14.5px; }
-  .fb { margin-top:2.5rem; border-top:1px solid var(--line); padding-top:1.4rem; }
   .foot { margin-top:2.75rem; font-size:12.5px; color:var(--faint); border-top:1px solid var(--line); padding-top:1.1rem; line-height:1.7; }
   .foot a { color:var(--muted); }
 `;
@@ -154,17 +151,12 @@ const HTML = `
       <p class="h">Matching mode (advanced)</p>
       <p style="margin:.3rem 0 .5rem"><select id="modeSel" aria-label="Matching mode"><option value="free" selected>evidence-direct (default)</option><option value="axis">axis-mapped</option></select></p>
       <p style="margin:0">Evidence-direct matches your facets straight against evidence rows — flexible, handles anything you can phrase. Axis-mapped first classifies your use case onto a fixed workload grid (task × difficulty × retrieval × response × format), then scores by evidence support for that shape — stiffer, but phrasing-independent.</p>
-      <p style="margin:.9rem 0 0">Full write-ups: <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a> · <a href="${REPO}" target="_blank" rel="noopener">data &amp; source</a></p>
+      <p style="margin:.9rem 0 0">Full write-ups: <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a></p>
     </div>
   </details>
   <div class="banner">Screening, not scoring: an <strong>uncalibrated</strong> shortlist from published evidence (data date <span id="dataDate">…</span>) — admission to testing, never endorsement. Where no evidence exists we say so; we never guess. Test before you trust. <a href="${SITE}/methodology.html" target="_blank" rel="noopener">How it's calculated</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a></div>
   <div id="out" aria-live="polite"></div>
-  <div class="fb" id="fbWrap" style="display:none">
-    <strong style="font-size:15px">Tried one of these?</strong>
-    <p class="none" style="margin:4px 0 8px">A sentence about how it actually went makes the next person's screen better. Never required.</p>
-    <a class="go" style="display:inline-block; text-decoration:none" id="fbLink" target="_blank" rel="noopener">Share what happened ↗</a>
-  </div>
-  <div class="foot">Evidence: vendor announcements, model cards, and open trackers — every claim carries its source link. Some third-party scores are withheld per the source's terms; we link out instead. Recommendations are admission-to-testing, never endorsements. <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a> · <a href="${REPO}" target="_blank" rel="noopener">Data &amp; source</a></div>
+  <div class="foot">Evidence: vendor announcements, model cards, and open trackers — every claim carries its source link. Some third-party scores are withheld per the source's terms; we link out instead. Recommendations are admission-to-testing, never endorsements. <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a></div>
 `;
 
 class ModelScreen extends HTMLElement {
@@ -459,9 +451,6 @@ class ModelScreen extends HTMLElement {
     if (insufficient.length) h += `<details><summary>${insufficient.length} models had too little relevant published evidence to rank (absence is a finding, not a zero)</summary><p class="none">${insufficient.map((x) => esc(x.m.name)).join(' · ')}</p></details>`;
     if (excluded.length) h += `<details><summary>${excluded.length} models excluded before scoring (your constraints)</summary><p class="none">${excluded.map((x) => `${esc(x.m.name)} — ${esc(x.reason)}`).join('<br>')}</p></details>`;
     this.$('out').innerHTML = h;
-    const body = encodeURIComponent(`**Model tried:**\n\n**What I used it for:** ${this.$('q').value.slice(0, 300)}\n\n**How it went:**\n\n**Formal results (optional):**\n`);
-    this.$('fbLink').href = `${REPO}/issues/new?title=${encodeURIComponent('Field report: <model>')}&body=${body}`;
-    this.$('fbWrap').style.display = 'block';
   }
 
   async screen() {

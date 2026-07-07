@@ -41,7 +41,7 @@
 </head>
 <body>
 <main>
-<nav><a href="./">← Try the screen</a> <a href="faq.html">FAQ</a> <a href="https://github.com/Join-The-Wheel/model-screen">Data &amp; source</a></nav>
+<nav><a href="./">← Try the screen</a> <a href="faq.html">FAQ</a></nav>
 
 <h1>How Model Screen works</h1>
 <p class="sub">The complete method: where the evidence comes from, how your sentence becomes a query, the exact scoring arithmetic, what the constraint chips really do — and, just as important, what a paper screen fundamentally cannot tell you.</p>
@@ -56,7 +56,7 @@
 </ul>
 
 <h2 id="corpus">1. The evidence corpus</h2>
-<p>Everything the screen knows lives in one open file: <a href="https://github.com/Join-The-Wheel/model-screen/blob/main/data/corpus.json"><code>data/corpus.json</code></a>. As of the current data date it holds <strong>394 evidence rows across 24 recent model releases</strong>. An evidence row is one published claim, captured with:</p>
+<p>Everything the screen knows lives in one open file, served with this page: <a href="data/corpus.json"><code>data/corpus.json</code></a>. As of the current data date it holds <strong>492 evidence rows across 37 model releases</strong> — the most recent model in each family line, most recent in each version. An evidence row is one published claim, captured with:</p>
 <table>
   <tr><th>Field</th><th>What it is</th></tr>
   <tr><td><code>benchmark</code>, <code>score</code></td><td>The named eval and the published number (or "withheld" — see rights, below)</td></tr>
@@ -68,13 +68,13 @@
 </table>
 
 <h3>Where rows come from</h3>
-<p>For each model release we build a dossier from its vendor announcement, model card / tech report, and whatever third-party trackers and leaderboards have measured it. Every row keeps its provenance label. The current mix is roughly <strong>half vendor-reported</strong> (168 plain vendor-launch rows plus relays), with 52 third-party-measured rows and 21 leaderboard rows — and that imbalance is precisely why source class matters in scoring: <strong>third-party-measured evidence outranks vendor claims</strong>, both in the judged row weights and in how results are displayed (the green <em>third-party</em> badge).</p>
+<p>For each model release we build a dossier from its vendor announcement, model card / tech report, and whatever third-party trackers and leaderboards have measured it. Every row keeps its provenance label. The current mix is roughly <strong>two-thirds vendor-reported</strong> (334 of 492, including relays), with 98 third-party-measured rows and 30 leaderboard rows — and that imbalance is precisely why source class matters in scoring: <strong>third-party-measured evidence outranks vendor claims</strong>, both in the judged row weights and in how results are displayed (the green <em>third-party</em> badge).</p>
 
 <h3>Adverse evidence is first-class</h3>
-<p>29 rows are adverse (<code>rowDir: low</code>) and 113 are mixed. A model's independently measured hallucination rate, a failed eval, a benchmark where it trails — these are captured at full fidelity and <em>amplified</em> in scoring (×1.6 against, versus ×1 in favor — arithmetic in <a href="#scoring">§3</a>). The asymmetry is deliberate: the cost of admitting a bad model to testing (your time, wasted) is higher than the cost of missing a marginal one (it'll surface in the next data refresh or a field report).</p>
+<p>44 rows are adverse (<code>rowDir: low</code>) and 139 are mixed. A model's independently measured hallucination rate, a failed eval, a benchmark where it trails — these are captured at full fidelity and <em>amplified</em> in scoring (×1.6 against, versus ×1 in favor — arithmetic in <a href="#scoring">§3</a>). The asymmetry is deliberate: the cost of admitting a bad model to testing (your time, wasted) is higher than the cost of missing a marginal one (it'll surface in the next data refresh or a field report).</p>
 
 <h3>Withheld scores and source rights</h3>
-<p>32 rows carry <code>scoreWithheld: true</code>. Some trackers publish scores under terms that don't permit redistribution. Benchmark scores are uncopyrightable facts, but we respect access terms anyway: for those rows we store the row's existence and its judged gloss, and <strong>link out to the source for the number</strong> instead of storing it. You'll see "score at source" in the results.</p>
+<p>34 rows carry <code>scoreWithheld: true</code>. Some trackers publish scores under terms that don't permit redistribution. Benchmark scores are uncopyrightable facts, but we respect access terms anyway: for those rows we store the row's existence and its judged gloss, and <strong>link out to the source for the number</strong> instead of storing it. You'll see "score at source" in the results.</p>
 
 <h3>Construct boundaries — the subtlest judging rule</h3>
 <div class="callout"><p style="margin:0">Evidence does not transfer across <em>constructs</em>. A model that hallucinates 95% of the time on closed-book trivia (a <em>parametric</em>-knowledge test) may fabricate <em>nothing</em> when given your documents to answer from (a <em>grounded</em> test) — we measured exactly this divergence while building the corpus. Glosses are judged to state which construct a result belongs to, so a closed-book hallucination score is never matched against a "must answer from my docs" use case as if it were the same thing.</p></div>
@@ -90,7 +90,7 @@
 <h2 id="scoring">3. Matching and scoring — the actual arithmetic</h2>
 <p>Each facet is converted to an embedding vector (in-browser: bge-small-en-v1.5, 384 dimensions, ~34&nbsp;MB one-time download; assisted: hosted bge-m3, 1024-d, multilingual). Every evidence row's <em>gloss</em> was embedded the same way ahead of time. Then, per facet:</p>
 <ol>
-  <li>Compute cosine similarity between the facet and every one of the 394 gloss vectors.</li>
+  <li>Compute cosine similarity between the facet and every one of the corpus gloss vectors.</li>
   <li>Keep every row above a <strong>relevance floor</strong>, below which embedding proximity stops meaning topical relevance. The floor is embedding-model-specific (0.45 for hosted bge-m3, 0.55 for in-browser bge-small — their cosine distributions sit ~0.1 apart), because a floor tuned for one model either floods or starves the other.</li>
   <li>Cap contributions at the <strong>2 closest rows per model per facet</strong> — breadth over stacking. Without the cap, a model with six math benchmarks in its dossier would triple-count one facet; with a global top-K instead (an earlier design), a broad single-facet query like "mathematical research" matched 130+ relevant rows but only 12 were allowed to count, dumping nearly every model into "insufficient evidence."</li>
   <li>Each surviving row contributes to its model's score:</li>
@@ -146,18 +146,18 @@ direction = +1.0  if the row is favorable   (rowDir: high)
 <div class="warnout"><p style="margin:0">We backtested this method against a private 630-cell measured benchmark: blind paper-only predictions versus live measured results. Rank order agreed well (Kendall τ ≈ +0.43 — published evidence <em>ranks</em> models usefully). But predicting <em>absolute</em> performance floors from paper caught only 3 of 11 real failures. That result is why the screen refuses to output scores, grades, or pass/fail verdicts: <strong>paper evidence orders candidates; only your own tests measure them.</strong></p></div>
 <ul>
   <li><strong>Embedding match ≠ relevance.</strong> Cosine similarity confuses topically-adjacent things (an agentic-coding benchmark can match a "customer support" facet through shared vocabulary). The judged glosses, the 0.45 floor and the chips each exist to blunt specific failure patterns we catalogued — nine of them — but the failure class doesn't fully go away. Hence the read-back: check what it thought you meant.</li>
-  <li><strong>Vendor benchmarks are optimized targets.</strong> Launch-post numbers are the best case by construction. The screen counterweights (source-class badges, third-party priority, adverse amplification) but cannot fully correct a corpus that is half vendor-reported.</li>
+  <li><strong>Vendor benchmarks are optimized targets.</strong> Launch-post numbers are the best case by construction. The screen counterweights (source-class badges, third-party priority, adverse amplification) but cannot fully correct a corpus that is two-thirds vendor-reported.</li>
   <li><strong>Evidence goes stale.</strong> The data date is shown above every result. A model released after that date doesn't exist here.</li>
-  <li><strong>Your workload is the only benchmark that matters.</strong> One published eval seldom shares your documents, your users, or your failure costs. The screen's job ends at "worth testing" — the field-report loop (below) exists because <em>real-workload reports beat all of this</em>.</li>
+  <li><strong>Your workload is the only benchmark that matters.</strong> One published eval seldom shares your documents, your users, or your failure costs. The screen's job ends at "worth testing" — real-workload feedback is the planned counterweight because <em>real-workload reports beat all of this</em>.</li>
 </ul>
 
 <h2 id="dogfood">8. The method selected its own parts</h2>
 <p>The two AI components in assisted mode were chosen by running this same screening methodology on the selection problem itself: define the requirement floors (parse reliability, constraint recall, latency, cost, zero-retention serving), screen candidates on published evidence, then run only the shortlist through a live bake-off with a gold set. Six bake-off waves later: facet extraction went to <strong>gpt-oss-120b</strong> (open weights, low reasoning effort, constraint-tuned prompt — the only package passing every floor at ~$0.0002 per query), embeddings to <strong>bge-m3</strong> (multilingual, zero-retention hosting). Two transferable lessons from that exercise are baked into these docs: the thing you evaluate is the (model + configuration + prompt) <em>package</em>, not the model name; and latency is a property of the serving provider, not the model.</p>
 
 <h2 id="refresh">9. Data refresh &amp; contributing</h2>
-<p>The corpus ships with the widget and refreshes as tagged releases; the data date is in <code>corpus.json → generated</code> and shown in the UI. If you tested a model the screen recommended (or warned you about), <a href="https://github.com/Join-The-Wheel/model-screen/issues/new">a one-sentence field report</a> feeds the next refresh — real-workload evidence is the highest-value row type we have, and the one thing vendors can't publish for you.</p>
+<p>The corpus ships with this page and refreshes as versioned updates; the data date is in <a href="data/corpus.json"><code>corpus.json → generated</code></a> and shown in the UI. Real-workload reports remain the highest-value evidence type there is — the one thing vendors can't publish for you — and a public channel for them will open as the tool matures.</p>
 
-<p class="muted" style="margin-top:2.5rem">Questions this page didn't answer are probably in the <a href="faq.html">FAQ</a>. Everything here — data, widget, proxy, judging pipeline — is open at <a href="https://github.com/Join-The-Wheel/model-screen">github.com/Join-The-Wheel/model-screen</a>.</p>
+<p class="muted" style="margin-top:2.5rem">Questions this page didn't answer are probably in the <a href="faq.html">FAQ</a>.</p>
 </main>
 </body>
 </html>
