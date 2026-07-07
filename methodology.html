@@ -83,7 +83,7 @@
 <p>Your sentence is split into <strong>facets</strong>: short self-contained requirements — capabilities ("summarize contracts"), inputs/outputs, constraints ("privacy matters"), and quality bars ("never fabricates"). Facets are matched independently, so one long messy sentence works as well as a tidy list.</p>
 <ul>
   <li><strong>Default (fully in-browser):</strong> rule-based splitting on sentence boundaries and connectives ("and", "but", commas). Simple, private, English-biased.</li>
-  <li><strong>Assisted mode</strong> (when the site embedding the widget runs a proxy): facets are extracted by an open-weights LLM (gpt-oss-120b, served zero-retention) with a prompt tuned so that <em>every stated constraint becomes its own facet</em> — in testing, missing a stated constraint was the most damaging failure mode, so the prompt treats it as the worst possible error. This path is multilingual and treats any instructions inside your text as data to describe, not commands to follow. If the proxy is unreachable the widget silently falls back to the in-browser path.</li>
+  <li><strong>Assisted mode</strong> (when the site embedding the widget runs a proxy): facets are extracted by an open-weights LLM (gpt-oss-120b, served zero-retention) with a prompt tuned so that <em>every stated constraint becomes its own facet</em> — in testing, missing a stated constraint was the most damaging failure mode, so the prompt treats it as the worst possible error. This path is multilingual and treats any instructions inside your text as data to describe, not commands to follow. If the proxy is unreachable — or the extractor finds no facets, which happens on terse topic-only input like "mathematical research" — the widget falls back to rule-based splitting rather than declaring your input unscreenable.</li>
 </ul>
 <p>Either way, the screen <strong>reads back the facets it extracted</strong> at the top of the results — the reading is imperfect by design, and showing it beats hiding it. If the read-back is wrong, rephrase, or use the chips (which bypass text understanding entirely).</p>
 
@@ -91,11 +91,14 @@
 <p>Each facet is converted to an embedding vector (in-browser: bge-small-en-v1.5, 384 dimensions, ~34&nbsp;MB one-time download; assisted: hosted bge-m3, 1024-d, multilingual). Every evidence row's <em>gloss</em> was embedded the same way ahead of time. Then, per facet:</p>
 <ol>
   <li>Compute cosine similarity between the facet and every one of the 394 gloss vectors.</li>
-  <li>Keep the top 12 rows above a similarity floor of <strong>0.45</strong> — below that, embedding proximity stops meaning topical relevance.</li>
+  <li>Keep every row above a <strong>relevance floor</strong>, below which embedding proximity stops meaning topical relevance. The floor is embedding-model-specific (0.45 for hosted bge-m3, 0.55 for in-browser bge-small — their cosine distributions sit ~0.1 apart), because a floor tuned for one model either floods or starves the other.</li>
+  <li>Cap contributions at the <strong>2 closest rows per model per facet</strong> — breadth over stacking. Without the cap, a model with six math benchmarks in its dossier would triple-count one facet; with a global top-K instead (an earlier design), a broad single-facet query like "mathematical research" matched 130+ relevant rows but only 12 were allowed to count, dumping nearly every model into "insufficient evidence."</li>
   <li>Each surviving row contributes to its model's score:</li>
 </ol>
-<pre>contribution = (similarity − 0.4) × rowWeight × direction
+<pre>contribution = (similarity − shift) × rowWeight × direction
 
+shift     = re-zeroes the embedding model's scale
+            (0.4 hosted / 0.5 in-browser — floor minus 0.05)
 direction = +1.0  if the row is favorable   (rowDir: high)
             +0.2  if the row is mixed       (rowDir: mixed)
             −1.6  if the row is adverse     (rowDir: low)</pre>
