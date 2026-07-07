@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ — Model Screen</title>
+<meta name="description" content="Every question about Model Screen: what the results mean, where the evidence comes from, what the chips do, what leaves your browser, and why it refuses to give scores.">
+<style>
+  body { margin:0; font:16px/1.65 system-ui,-apple-system,sans-serif; background:#faf9f6; color:#1a1a18; }
+  @media (prefers-color-scheme: dark) { body { background:#1c1c1a; color:#ecebe4; } }
+  main { max-width:780px; margin:0 auto; padding:2.75rem 1.25rem 4rem; }
+  nav { font-size:14px; margin:0 0 2rem; display:flex; gap:14px; flex-wrap:wrap; }
+  nav a { color:#6b6a64; text-decoration:none; border-bottom:1px solid #e2e1da; }
+  nav a:hover { color:#0f6e56; border-color:#0f6e56; }
+  h1 { font-size:27px; font-weight:650; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8f8e86; margin:2.6rem 0 .2rem; }
+  .sub { color:#6b6a64; margin:0 0 1rem; max-width:62ch; }
+  details { border-bottom:1px solid #e2e1da; padding:2px 0; }
+  summary { font-size:16.5px; font-weight:600; padding:12px 0; cursor:pointer; list-style-position:outside; }
+  summary:hover { color:#0f6e56; }
+  details > div { padding:0 0 14px; }
+  p, li { max-width:70ch; margin:.4rem 0; }
+  code { font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; background:#f0efe9; border-radius:5px; padding:1px 5px; }
+  a { color:#0f6e56; }
+  .muted { color:#6b6a64; }
+  @media (prefers-color-scheme: dark) {
+    .sub, .muted, nav a { color:#a5a49b; }
+    nav a, details { border-color:#33332f; }
+    code { background:#252523; }
+    a { color:#4dbf9c; }
+    summary:hover { color:#4dbf9c; }
+  }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="./">← Try the screen</a> <a href="methodology.html">Methodology</a> <a href="https://github.com/Join-The-Wheel/model-screen">Data &amp; source</a></nav>
+
+<h1>FAQ</h1>
+<p class="sub">Short answers, with links into the <a href="methodology.html">full methodology</a> where the detail lives.</p>
+
+<h2>The basics</h2>
+
+<details open>
+<summary>What is this, in one paragraph?</summary>
+<div><p>You describe what you need an AI model for. Model Screen matches that against a corpus of <strong>judged, source-linked published evidence</strong> — benchmark results, model-card claims, third-party measurements — for recent model releases, and returns a shortlist of models <em>worth actually testing</em> for your use case, each with the evidence for and against it, places to try it free, and links to every source. It's the cheap filter in front of the expensive step (testing), not a replacement for it.</p></div>
+</details>
+
+<details>
+<summary>Who is it for?</summary>
+<div><p>Anyone who has to answer "should we look at this new model?" more often than they can afford to actually look: developers picking a model for a feature, teams with an incumbent wondering if a new release beats it, founders choosing a first stack, hobbyists deciding what to download. If you've ever skimmed a launch post full of unfamiliar benchmark names and thought "…but is it good <em>for my thing</em>?" — that's the exact question this tool answers.</p></div>
+</details>
+
+<details>
+<summary>Is this a leaderboard?</summary>
+<div><p>No — and the difference is the whole point. A leaderboard ranks models on <em>its</em> benchmark; Model Screen ranks published evidence against <em>your</em> use case. A model can top a leaderboard and screen out for you (wrong constraint profile, no relevant evidence), and a small cheap model can screen in above a frontier one because for many real workloads the published evidence genuinely supports that.</p></div>
+</details>
+
+<details>
+<summary>Why does it say "worth testing" instead of "best"?</summary>
+<div><p>Because we checked whether paper evidence can say "best" — and it can't. In a backtest against a private measured benchmark, published-evidence rankings agreed well with measured rankings (rank correlation ≈ +0.43), but paper-only predictions of absolute performance caught just 3 of 11 real failures. Paper evidence <em>orders</em> candidates usefully; it does not <em>measure</em> them. So the product promises exactly what the evidence supports: a shortlist worth your testing time. Details in <a href="methodology.html#limits">methodology §7</a>.</p></div>
+</details>
+
+<details>
+<summary>Why not just ask ChatGPT / Claude which model to use?</summary>
+<div><p>Three reasons. A chatbot's knowledge has a training cutoff, so the releases you most need to evaluate are the ones it knows least about. Its answer synthesizes reputation and vibes with no provenance — you can't see which claim came from a vendor's launch post versus an independent measurement. And it will rarely tell you "there is no evidence for this" — it fills gaps. Model Screen is narrow on purpose: current data with a visible date, every claim linked to its source, adverse evidence shown at full weight, and explicit "no evidence exists" answers.</p></div>
+</details>
+
+<h2>Reading the results</h2>
+
+<details>
+<summary>What does the rank order actually mean?</summary>
+<div><p>"Rank 1 has the strongest <em>published case</em> for the facets of your use case" — nothing more. Ranks come from summed evidence contributions (<a href="methodology.html#scoring">the arithmetic</a>), and only the top 5 are shown because beyond that the differences are inside the method's noise. Rank order is where to <em>start testing</em>, not a prediction of which will win.</p></div>
+</details>
+
+<details>
+<summary>Why are there no scores or percentages on the cards?</summary>
+<div><p>Deliberate. Showing "87/100" would claim a precision the method doesn't have (see the backtest result above). The internal numbers exist and are open source, but displaying them would invite exactly the misuse — treating a screen as a measurement — that the tool is designed to prevent. What you get instead is the evidence itself, with sources, so you can judge its strength directly.</p></div>
+</details>
+
+<details>
+<summary>What is "N matched evidence rows"?</summary>
+<div><p>Coverage, not quality: the number of judged evidence rows that matched your facets closely enough to count. A model with 9 matched rows has a well-covered claim; one with 2 barely clears the bar to be ranked at all (and below 4 it carries the "thin evidence" flag). A high rank on thin evidence means "intriguing lead," not "safe pick."</p></div>
+</details>
+
+<details>
+<summary>What does "thin evidence — a lead, not a verdict" mean?</summary>
+<div><p>The model ranked on fewer than 4 matched rows. Small evidence bases are noisy — one enthusiastic vendor benchmark can carry the rank. Treat it as a pointer worth five minutes in a free playground, not a shortlist finalist.</p></div>
+</details>
+
+<details>
+<summary>What's the "Watch out" section?</summary>
+<div><p>Adverse evidence that matched your use case: independently measured hallucination rates, failed evals, benchmarks where the model trails. These rows already pulled the model's rank <em>down</em> — at 1.6× the weight of favorable rows — and are surfaced so you know exactly what to probe when you test. A model can rank #1 and still have warnings; that means "strong case overall, with a specific known weakness."</p></div>
+</details>
+
+<details>
+<summary>Why does bad news count 1.6× more than good news?</summary>
+<div><p>Because the two mistakes cost differently. Admitting a bad model to testing wastes your time — the exact resource this tool protects. Missing a marginal model costs little: it resurfaces in the next data refresh or a field report. When error costs are asymmetric, the weights should be too. <a href="methodology.html#corpus">Methodology §1</a>.</p></div>
+</details>
+
+<details>
+<summary>Why is model X missing entirely?</summary>
+<div><p>Four possibilities, all visible in the UI: (1) it's not in the corpus yet — check the data date shown above the results; the corpus covers recent releases, not the all-time catalog; (2) it was <strong>excluded by your constraints</strong> — expand "models excluded before scoring" at the bottom, each has its reason; (3) it had <strong>too little relevant evidence</strong> to rank — that list is also expandable, and absence of evidence is reported as a finding, never a zero; (4) it simply ranked below the top 5.</p></div>
+</details>
+
+<details>
+<summary>Nothing passed my screen. Is it broken?</summary>
+<div><p>No — that's one of the most useful outputs. It means no recent release has published evidence that clears your constraints, which tells you either to loosen a constraint (check the exclusion list to see which one was expensive) or to treat your use case as genuinely test-it-yourself territory. The screen will never pad a weak list to look helpful.</p></div>
+</details>
+
+<details>
+<summary>What does "score at source (withheld)" mean?</summary>
+<div><p>Some trackers publish scores under access terms that don't permit republishing. For those rows we keep the judged gloss (what the result demonstrates) and link you to the source for the number itself, instead of storing it. 32 of the current 394 rows work this way.</p></div>
+</details>
+
+<details>
+<summary>Why did it read my use case wrong?</summary>
+<div><p>The facet read-back at the top of the results shows exactly what the screen understood — imperfect by design, shown so misreads are visible rather than silent. Two fixes: rephrase with the constraint as its own sentence ("Privacy is required."), or better, use the chips — they inject constraints directly into the scoring and skip text understanding entirely.</p></div>
+</details>
+
+<details>
+<summary>What's "evidence-direct" vs "axis-mapped" (the advanced matching option)?</summary>
+<div><p><strong>Evidence-direct</strong> (default): your facets are matched straight against the evidence rows. Flexible, works for anything you can phrase. <strong>Axis-mapped</strong>: your use case is first classified onto a fixed workload grid (task type × difficulty × retrieval × response mode × output format), then models are scored by pre-computed evidence support for that workload shape. Stiffer, but two phrasings of the same job land in the same place. They can disagree slightly — they're two lenses on the same corpus. Default is right unless you want the workload-shape read-back. <a href="methodology.html#axis">Methodology §3</a>.</p></div>
+</details>
+
+<h2>The chips</h2>
+
+<details>
+<summary>What exactly does each chip do?</summary>
+<div>
+<ul>
+<li><strong>answers from my docs/data</strong> — steers matching toward grounded (RAG/document-QA) evidence and away from closed-book knowledge tests.</li>
+<li><strong>must run privately / self-host</strong> — <em>hard filter</em>: removes every API-only model and every open-weights model that's cluster-scale in practice, before scoring. Exclusions are listed with reasons.</li>
+<li><strong>budget-sensitive</strong> — nudges cheap models up (≈ ≤$3 per million output tokens, +0.2) and expensive ones down (≥$15, −0.3), from published pricing.</li>
+<li><strong>must not make things up</strong> — pulls all faithfulness evidence in at full strength: measured adverse evidence −0.6 with a warning; independent favorable evidence +0.25; no evidence at all → an explicit "test before trusting" note.</li>
+</ul>
+<p>Full detail in <a href="methodology.html#chips">methodology §4</a>.</p></div>
+</details>
+
+<details>
+<summary>I already wrote "privacy matters" in my sentence — why click a chip too?</summary>
+<div><p>Because embedding-based matching treats prose constraints as just another topic, and we measured that it drops them: "privacy matters" becomes one facet among five instead of a non-negotiable. The chip makes it a guarantee — a hard filter applied before scoring rather than a preference inside it. Prose + chip is the right move for anything you actually can't compromise on.</p></div>
+</details>
+
+<h2>The evidence</h2>
+
+<details>
+<summary>Where does the data come from?</summary>
+<div><p>For each covered release: the vendor's announcement, the model card / tech report, and third-party trackers and leaderboards that measured it. Each published claim becomes one row with a judged plain-language gloss, a direction (favorable / mixed / adverse), a weight, its source class, and its URL. The whole corpus is one open file — <a href="https://github.com/Join-The-Wheel/model-screen/blob/main/data/corpus.json"><code>data/corpus.json</code></a> — currently 394 rows across 24 releases. <a href="methodology.html#corpus">Methodology §1</a>.</p></div>
+</details>
+
+<details>
+<summary>How fresh is it, and what happens when a new model ships?</summary>
+<div><p>The data date is shown in the widget (and in <code>corpus.json → generated</code>). The corpus refreshes as tagged releases of this repo; a model released after the data date doesn't exist here yet, and the results will say so rather than guess.</p></div>
+</details>
+
+<details>
+<summary>Vendors game benchmarks. How do you handle hype?</summary>
+<div><p>Four counterweights: every row is labeled by <em>who measured it</em>, and third-party measurements outrank vendor claims in judged weight; vendor numbers get skeptical glosses at judging time (a vendor's "internal benchmark, unreproducible" is recorded as exactly that); adverse evidence is amplified 1.6×; and the source badge is on every line so you can discount vendor rows yourself. What we can't do is fix the underlying supply — roughly half of all published evidence is vendor-reported, which is exactly why the last step is always "test before you trust."</p></div>
+</details>
+
+<details>
+<summary>A model scored terribly on a hallucination benchmark. Why does it still rank for my RAG use case?</summary>
+<div><p>Because of <em>construct boundaries</em> — the subtlest rule in the corpus. Most published hallucination scores measure <em>parametric</em> recall (closed-book trivia: does the model know facts from training?). Your RAG use case is <em>grounded</em> (the model answers from documents you supply). We measured a model with a ~95% closed-book hallucination rate produce <strong>zero</strong> fabrications when grounded. Evidence is judged with its construct and doesn't leak across the boundary. <a href="methodology.html#corpus">Methodology §1</a>.</p></div>
+</details>
+
+<h2>Privacy &amp; how it runs</h2>
+
+<details>
+<summary>What leaves my browser when I type here?</summary>
+<div><p><strong>Default mode: nothing.</strong> The corpus and the matching model download <em>to</em> your browser and everything — facet splitting, embedding, scoring — runs locally. No accounts, no cookies, no telemetry, and your text never leaves the page. <strong>Assisted mode</strong> (only when the embedding site sets it up, shown in the status line): your text goes to that site's proxy and is forwarded to exactly two zero-retention inference providers for parsing and embedding — never stored, never logged, never used for anything else. If the proxy is down, the widget falls back to the fully-local path automatically.</p></div>
+</details>
+
+<details>
+<summary>What's the ~34&nbsp;MB download about?</summary>
+<div><p>That's the matching model (bge-small-en-v1.5) arriving in your browser the first time you run a screen in default mode — it's what makes "nothing you type leaves the page" possible. It's cached after the first use, and it never downloads at page load: embedding the widget costs a page nothing until a visitor actually uses it. Assisted mode skips the download entirely.</p></div>
+</details>
+
+<h2>Install &amp; contribute</h2>
+
+<details>
+<summary>How do I put this on my own site?</summary>
+<div><p>Two lines:</p>
+<p><code>&lt;script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.2.0/dist/widget.js"&gt;&lt;/script&gt;</code><br>
+<code>&lt;model-screen&gt;&lt;/model-screen&gt;</code></p>
+<p>It renders in shadow DOM (your CSS is untouched) and defaults to the fully-in-browser mode. The optional assisted mode and proxy deployment are in the <a href="https://github.com/Join-The-Wheel/model-screen#optional-assisted-mode-tier-1">README</a>.</p></div>
+</details>
+
+<details>
+<summary>I tested a model. How do I feed that back?</summary>
+<div><p><a href="https://github.com/Join-The-Wheel/model-screen/issues/new">Open a field report</a> — one sentence about what you used it for and how it went is enough. Real-workload reports are the highest-value evidence type there is (they're the one thing vendors can't publish), and they feed the next corpus refresh. Never required.</p></div>
+</details>
+
+<details>
+<summary>Can I use this with my own models or my own evidence?</summary>
+<div><p>The corpus is an open JSON file with a documented row format, and the widget just reads whatever's in <code>data/</code> — so yes, a fork with your own judged rows works today. The upstream project this tool grew from is exactly that idea generalized: define your own benchmark, screen releases against it. If that's what you need, watch the repo.</p></div>
+</details>
+
+<details>
+<summary>What's the license?</summary>
+<div><p>MIT, provisionally — the upstream project's open-core licensing decision may adjust this before v1.0. The evidence corpus's third-party scores stay with their sources (that's the "withheld" mechanism), so the repo never redistributes anything it shouldn't.</p></div>
+</details>
+
+<p class="muted" style="margin-top:2.5rem">Still unanswered? <a href="https://github.com/Join-The-Wheel/model-screen/issues/new">Open an issue</a> — unanswered questions are FAQ bugs.</p>
+</main>
+</body>
+</html>

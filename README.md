@@ -4,10 +4,12 @@ Describe what you need an AI model for, in a sentence. Model Screen checks recen
 
 **Screening, not scoring.** Results are an uncalibrated shortlist: admission-to-testing, never endorsements. Third-party-measured evidence outranks vendor claims. Where no evidence exists, we say so — we never guess.
 
+**Docs:** [Live demo](https://join-the-wheel.github.io/model-screen/) · [Methodology](https://join-the-wheel.github.io/model-screen/methodology.html) (the full method: corpus, matching arithmetic, chips, limits) · [FAQ](https://join-the-wheel.github.io/model-screen/faq.html)
+
 ## Install on your website
 
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.1.0/dist/widget.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.2.0/dist/widget.js"></script>
 <model-screen></model-screen>
 ```
 
