@@ -10,7 +10,7 @@ and the upstream selection record):
   POST /embed   {"texts": ["...", ...]}   (max 8 texts, 2000 chars each)
       -> {"vectors": [[...1024 floats...], ...]}
       BAAI/bge-m3 @ DeepInfra (zero-retention policy), multilingual.
-  GET  /healthz -> ok
+  GET  /health -> ok   (note: /healthz is intercepted by Google Frontend on run.app)
 
 Env: FIREWORKS_API_KEY, DEEPINFRA_API_KEY (Cloud Run: --set-secrets),
      ALLOWED_ORIGINS (comma-separated, default "*"), PORT (default 8080),
@@ -118,7 +118,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        if self.path == "/healthz":
+        if self.path in ("/health", "/healthz"):
             self._json(200, {"ok": True})
         else:
             self._json(404, {"error": "not found"})
@@ -149,7 +149,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(200, embed(texts))
             else:
                 self._json(404, {"error": "not found"})
-        except Exception:  # noqa: BLE001 — upstream failures become a clean 502; widget falls back
+        except Exception as e:  # noqa: BLE001 — upstream failures become a clean 502; widget falls back
+            import sys
+            detail = ""
+            if hasattr(e, "read"):
+                try:
+                    detail = e.read()[:200].decode("utf-8", "replace")
+                except Exception:  # noqa: BLE001
+                    pass
+            print(f"upstream error on {self.path}: {type(e).__name__}: {e} {detail}", file=sys.stderr, flush=True)
             self._json(502, {"error": "upstream failed"})
 
     def log_message(self, fmt, *args):  # no visitor text in logs, ever
