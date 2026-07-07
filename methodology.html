@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodology — Model Screen</title>
+<meta name="description" content="Exactly how Model Screen turns a sentence about your use case into a ranked shortlist of AI models worth testing — the evidence corpus, the matching math, the constraint filters, and what screening cannot tell you.">
+<style>
+  body { margin:0; font:16px/1.65 system-ui,-apple-system,sans-serif; background:#faf9f6; color:#1a1a18; }
+  @media (prefers-color-scheme: dark) { body { background:#1c1c1a; color:#ecebe4; } }
+  main { max-width:780px; margin:0 auto; padding:2.75rem 1.25rem 4rem; }
+  nav { font-size:14px; margin:0 0 2rem; display:flex; gap:14px; flex-wrap:wrap; }
+  nav a { color:#6b6a64; text-decoration:none; border-bottom:1px solid #e2e1da; }
+  nav a:hover { color:#0f6e56; border-color:#0f6e56; }
+  h1 { font-size:27px; font-weight:650; margin:0 0 6px; letter-spacing:-.01em; }
+  h2 { font-size:20px; font-weight:650; margin:2.4rem 0 .6rem; }
+  h3 { font-size:16.5px; font-weight:650; margin:1.5rem 0 .4rem; }
+  .sub { color:#6b6a64; margin:0 0 1.4rem; max-width:62ch; }
+  p, li, dd { max-width:70ch; }
+  code { font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; background:#f0efe9; border-radius:5px; padding:1px 5px; }
+  pre { background:#f0efe9; border-radius:10px; padding:14px 16px; overflow-x:auto; font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  table { border-collapse:collapse; font-size:14.5px; margin:.6rem 0 1rem; }
+  th, td { text-align:left; padding:6px 14px 6px 0; border-bottom:1px solid #e2e1da; vertical-align:top; }
+  th { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#8f8e86; }
+  dt { font-weight:600; margin-top:.8rem; }
+  dd { margin:0 0 .3rem; color:inherit; }
+  .muted { color:#6b6a64; }
+  .callout { border-left:3px solid #0f6e56; background:#e1f5ee33; padding:10px 16px; border-radius:0 10px 10px 0; margin:1rem 0; }
+  .warnout { border-left:3px solid #993c1d; background:#faece733; padding:10px 16px; border-radius:0 10px 10px 0; margin:1rem 0; }
+  a { color:#0f6e56; }
+  @media (prefers-color-scheme: dark) {
+    .sub, .muted, nav a { color:#a5a49b; }
+    nav a { border-color:#33332f; }
+    code, pre { background:#252523; }
+    th, td { border-color:#33332f; }
+    a { color:#4dbf9c; }
+    .callout { border-color:#4dbf9c; background:#12352b33; }
+    .warnout { border-color:#f0997b; background:#3a211833; }
+  }
+</style>
+</head>
+<body>
+<main>
+<nav><a href="./">← Try the screen</a> <a href="faq.html">FAQ</a> <a href="https://github.com/Join-The-Wheel/model-screen">Data &amp; source</a></nav>
+
+<h1>How Model Screen works</h1>
+<p class="sub">The complete method: where the evidence comes from, how your sentence becomes a query, the exact scoring arithmetic, what the constraint chips really do — and, just as important, what a paper screen fundamentally cannot tell you.</p>
+
+<h2 id="what">0. What this is (and is not)</h2>
+<p>Testing an AI model properly is expensive: you build an eval set, wire up the model, run it against real workloads, read the outputs. Nobody can do that for every release — several ship <em>per month</em>. Model Screen is the cheap stage in front of that expensive one: it reads a model's <strong>published evidence</strong> (benchmarks, model cards, third-party measurements) against <em>your</em> use case and answers one question: <strong>is this release worth the cost of actually testing?</strong></p>
+<p>That framing drives every design choice below:</p>
+<ul>
+  <li><strong>Screening, not scoring.</strong> The output is admission-to-testing, never an endorsement. Ranks mean "strongest published case for your workload," not "will perform best."</li>
+  <li><strong>Uncalibrated by design.</strong> We show rank order and evidence, never a percentage or grade — because we have not verified that paper evidence predicts your real performance (see <a href="#limits">§7</a> for how badly it can miss).</li>
+  <li><strong>Absence is a finding.</strong> If a model has no evidence relevant to your use case, we say exactly that instead of guessing or scoring it zero. "No evidence" and "bad evidence" are different facts and are shown differently.</li>
+</ul>
+
+<h2 id="corpus">1. The evidence corpus</h2>
+<p>Everything the screen knows lives in one open file: <a href="https://github.com/Join-The-Wheel/model-screen/blob/main/data/corpus.json"><code>data/corpus.json</code></a>. As of the current data date it holds <strong>394 evidence rows across 24 recent model releases</strong>. An evidence row is one published claim, captured with:</p>
+<table>
+  <tr><th>Field</th><th>What it is</th></tr>
+  <tr><td><code>benchmark</code>, <code>score</code></td><td>The named eval and the published number (or "withheld" — see rights, below)</td></tr>
+  <tr><td><code>gloss</code></td><td>A judged plain-language sentence stating what this result <em>actually demonstrates</em> — this is what gets matched against your use case, not the raw benchmark name</td></tr>
+  <tr><td><code>rowDir</code></td><td>Direction: <code>high</code> (favorable), <code>low</code> (adverse), or <code>mixed</code></td></tr>
+  <tr><td><code>rowW</code></td><td>Weight 0–1: how much this row should count, judged from how informative and load-bearing the result is</td></tr>
+  <tr><td><code>sourceClass</code></td><td>Who measured it — <code>third-party-measured</code>, <code>leaderboard</code>, <code>vendor-launch</code>, <code>community</code> relay — recorded verbatim, including messy chains like "vendor-launch (relayed by Vellum)"</td></tr>
+  <tr><td><code>url</code>, <code>tags</code></td><td>The source link on every single row, plus capability tags (reasoning, agentic, faithfulness, cost, …)</td></tr>
+</table>
+
+<h3>Where rows come from</h3>
+<p>For each model release we build a dossier from its vendor announcement, model card / tech report, and whatever third-party trackers and leaderboards have measured it. Every row keeps its provenance label. The current mix is roughly <strong>half vendor-reported</strong> (168 plain vendor-launch rows plus relays), with 52 third-party-measured rows and 21 leaderboard rows — and that imbalance is precisely why source class matters in scoring: <strong>third-party-measured evidence outranks vendor claims</strong>, both in the judged row weights and in how results are displayed (the green <em>third-party</em> badge).</p>
+
+<h3>Adverse evidence is first-class</h3>
+<p>29 rows are adverse (<code>rowDir: low</code>) and 113 are mixed. A model's independently measured hallucination rate, a failed eval, a benchmark where it trails — these are captured at full fidelity and <em>amplified</em> in scoring (×1.6 against, versus ×1 in favor — arithmetic in <a href="#scoring">§3</a>). The asymmetry is deliberate: the cost of admitting a bad model to testing (your time, wasted) is higher than the cost of missing a marginal one (it'll surface in the next data refresh or a field report).</p>
+
+<h3>Withheld scores and source rights</h3>
+<p>32 rows carry <code>scoreWithheld: true</code>. Some trackers publish scores under terms that don't permit redistribution. Benchmark scores are uncopyrightable facts, but we respect access terms anyway: for those rows we store the row's existence and its judged gloss, and <strong>link out to the source for the number</strong> instead of storing it. You'll see "score at source" in the results.</p>
+
+<h3>Construct boundaries — the subtlest judging rule</h3>
+<div class="callout"><p style="margin:0">Evidence does not transfer across <em>constructs</em>. A model that hallucinates 95% of the time on closed-book trivia (a <em>parametric</em>-knowledge test) may fabricate <em>nothing</em> when given your documents to answer from (a <em>grounded</em> test) — we measured exactly this divergence while building the corpus. Glosses are judged to state which construct a result belongs to, so a closed-book hallucination score is never matched against a "must answer from my docs" use case as if it were the same thing.</p></div>
+
+<h2 id="facets">2. Reading your use case</h2>
+<p>Your sentence is split into <strong>facets</strong>: short self-contained requirements — capabilities ("summarize contracts"), inputs/outputs, constraints ("privacy matters"), and quality bars ("never fabricates"). Facets are matched independently, so one long messy sentence works as well as a tidy list.</p>
+<ul>
+  <li><strong>Default (fully in-browser):</strong> rule-based splitting on sentence boundaries and connectives ("and", "but", commas). Simple, private, English-biased.</li>
+  <li><strong>Assisted mode</strong> (when the site embedding the widget runs a proxy): facets are extracted by an open-weights LLM (gpt-oss-120b, served zero-retention) with a prompt tuned so that <em>every stated constraint becomes its own facet</em> — in testing, missing a stated constraint was the most damaging failure mode, so the prompt treats it as the worst possible error. This path is multilingual and treats any instructions inside your text as data to describe, not commands to follow. If the proxy is unreachable the widget silently falls back to the in-browser path.</li>
+</ul>
+<p>Either way, the screen <strong>reads back the facets it extracted</strong> at the top of the results — the reading is imperfect by design, and showing it beats hiding it. If the read-back is wrong, rephrase, or use the chips (which bypass text understanding entirely).</p>
+
+<h2 id="scoring">3. Matching and scoring — the actual arithmetic</h2>
+<p>Each facet is converted to an embedding vector (in-browser: bge-small-en-v1.5, 384 dimensions, ~34&nbsp;MB one-time download; assisted: hosted bge-m3, 1024-d, multilingual). Every evidence row's <em>gloss</em> was embedded the same way ahead of time. Then, per facet:</p>
+<ol>
+  <li>Compute cosine similarity between the facet and every one of the 394 gloss vectors.</li>
+  <li>Keep the top 12 rows above a similarity floor of <strong>0.45</strong> — below that, embedding proximity stops meaning topical relevance.</li>
+  <li>Each surviving row contributes to its model's score:</li>
+</ol>
+<pre>contribution = (similarity − 0.4) × rowWeight × direction
+
+direction = +1.0  if the row is favorable   (rowDir: high)
+            +0.2  if the row is mixed       (rowDir: mixed)
+            −1.6  if the row is adverse     (rowDir: low)</pre>
+<p>In words: how closely the evidence matches what you asked for, times how much the evidence is worth, times which way it cuts — with bad news counting 1.6× as hard as good news. A model's score is the sum over all facets and all matched rows. For display, each row keeps its single strongest contribution, so the "why it screens in" list shows the evidence that actually drove the rank.</p>
+<p>There is <strong>no model-name matching, no vendor priors, no popularity signal</strong> anywhere in the score. A model ranks only through judged evidence rows that matched your facets.</p>
+
+<h3 id="axis">Axis-mapped mode (the advanced alternative)</h3>
+<p>The default mode above matches your facets straight against evidence glosses ("evidence-direct"). The alternative in the advanced selector first classifies your use case onto a fixed workload grid — task type (lookup / condense / compare / procedural / artifact / evaluate / meta), difficulty, retrieval mode, response mode, output format — using softmax over embedding similarity to each axis-value description, then scores models by their pre-computed evidence support for that workload shape. It's stiffer but more comparable across queries: two different phrasings of the same job land on the same grid cell. Use evidence-direct (the default) unless you want the workload-shape read-back.</p>
+
+<h2 id="chips">4. The constraint chips — exactly what each does</h2>
+<p>Prose embedding measurably drops constraints — "privacy matters" adds one facet among many, when what you meant was <em>non-negotiable</em>. Chips carry those non-negotiables directly into the scorer, skipping text understanding entirely:</p>
+<dl>
+  <dt>answers from my docs / data</dt>
+  <dd>Steers the match toward grounded-workload evidence (RAG, document QA) and away from closed-book knowledge tests; in axis mode it locks retrieval to <code>knowledge</code> and removes memory-of-the-model workloads.</dd>
+  <dt>must run privately / self-host — <em>hard filter</em></dt>
+  <dd>Removes, before any scoring, every API-only model <em>and</em> every open-weights model that is cluster-scale in practice (a 600B-parameter model is "open" in license only). What's left can actually run on infrastructure you control. Excluded models are listed with the reason, never silently dropped.</dd>
+  <dt>budget-sensitive</dt>
+  <dd>Reads the model's published per-token pricing: roughly ≤$3 per million output tokens nudges the score up (+0.2), ≥$15 pushes it down (−0.3), the middle is untouched. Coarse on purpose — real cost depends on your token volumes, which we don't know.</dd>
+  <dt>must not make things up</dt>
+  <dd>Pulls in every faithfulness-tagged row for each model at full strength: measured adverse evidence subtracts 0.6 and surfaces as a warning; independent favorable evidence adds 0.25; and if <em>no</em> faithfulness evidence exists we tell you exactly that — "test before trusting" — instead of staying quiet.</dd>
+</dl>
+<p>Hard filters run before scoring and their exclusions are itemized at the bottom of the results, so you can always see what a chip cost you.</p>
+
+<h2 id="ranking">5. Ranking and the honesty rules</h2>
+<ul>
+  <li><strong>Minimum evidence to rank:</strong> a model needs at least <strong>2 matched rows</strong>. Below that it is moved to "not enough relevant published evidence" — visible, unranked, and explicitly <em>not</em> scored zero. New releases often live here for weeks; that's information, not failure.</li>
+  <li><strong>Thin-evidence flag:</strong> ranked models with fewer than 4 matched rows carry a visible "thin evidence — a lead, not a verdict" pill.</li>
+  <li><strong>Top 5 only.</strong> Past rank 5 the score differences are inside the noise of this method; pretending otherwise would be false precision.</li>
+  <li><strong>"Nothing passes" is a real answer.</strong> If no model clears the filters with adequate evidence, the screen says so and suggests loosening a constraint — it never pads the list.</li>
+  <li><strong>Every claim keeps its link.</strong> Each evidence line in a result card links to its source and shows who measured it.</li>
+</ul>
+
+<h2 id="cards">6. What's on a result card</h2>
+<table>
+  <tr><th>Element</th><th>Meaning</th></tr>
+  <tr><td>"N matched evidence rows"</td><td>Coverage: how many judged rows matched your facets. More = better-covered claim, <em>not</em> higher quality.</td></tr>
+  <tr><td>Why it screens in</td><td>The strongest positive contributions — each with benchmark, score, source badge and link.</td></tr>
+  <tr><td>Watch out</td><td>Adverse rows that matched your use case. These already reduced the rank; they're shown so you test for them.</td></tr>
+  <tr><td>Try it free</td><td>Playgrounds and free tiers where you can poke the model in minutes — the whole point of screening is to get you to real testing cheaply.</td></tr>
+  <tr><td>Available via</td><td>API providers serving the model, with a pricing link.</td></tr>
+  <tr><td>All evidence rows</td><td>The complete judged dossier for that model, favorable and adverse, expandable at the bottom of each card.</td></tr>
+</table>
+
+<h2 id="limits">7. What screening cannot tell you</h2>
+<div class="warnout"><p style="margin:0">We backtested this method against a private 630-cell measured benchmark: blind paper-only predictions versus live measured results. Rank order agreed well (Kendall τ ≈ +0.43 — published evidence <em>ranks</em> models usefully). But predicting <em>absolute</em> performance floors from paper caught only 3 of 11 real failures. That result is why the screen refuses to output scores, grades, or pass/fail verdicts: <strong>paper evidence orders candidates; only your own tests measure them.</strong></p></div>
+<ul>
+  <li><strong>Embedding match ≠ relevance.</strong> Cosine similarity confuses topically-adjacent things (an agentic-coding benchmark can match a "customer support" facet through shared vocabulary). The judged glosses, the 0.45 floor and the chips each exist to blunt specific failure patterns we catalogued — nine of them — but the failure class doesn't fully go away. Hence the read-back: check what it thought you meant.</li>
+  <li><strong>Vendor benchmarks are optimized targets.</strong> Launch-post numbers are the best case by construction. The screen counterweights (source-class badges, third-party priority, adverse amplification) but cannot fully correct a corpus that is half vendor-reported.</li>
+  <li><strong>Evidence goes stale.</strong> The data date is shown above every result. A model released after that date doesn't exist here.</li>
+  <li><strong>Your workload is the only benchmark that matters.</strong> One published eval seldom shares your documents, your users, or your failure costs. The screen's job ends at "worth testing" — the field-report loop (below) exists because <em>real-workload reports beat all of this</em>.</li>
+</ul>
+
+<h2 id="dogfood">8. The method selected its own parts</h2>
+<p>The two AI components in assisted mode were chosen by running this same screening methodology on the selection problem itself: define the requirement floors (parse reliability, constraint recall, latency, cost, zero-retention serving), screen candidates on published evidence, then run only the shortlist through a live bake-off with a gold set. Six bake-off waves later: facet extraction went to <strong>gpt-oss-120b</strong> (open weights, low reasoning effort, constraint-tuned prompt — the only package passing every floor at ~$0.0002 per query), embeddings to <strong>bge-m3</strong> (multilingual, zero-retention hosting). Two transferable lessons from that exercise are baked into these docs: the thing you evaluate is the (model + configuration + prompt) <em>package</em>, not the model name; and latency is a property of the serving provider, not the model.</p>
+
+<h2 id="refresh">9. Data refresh &amp; contributing</h2>
+<p>The corpus ships with the widget and refreshes as tagged releases; the data date is in <code>corpus.json → generated</code> and shown in the UI. If you tested a model the screen recommended (or warned you about), <a href="https://github.com/Join-The-Wheel/model-screen/issues/new">a one-sentence field report</a> feeds the next refresh — real-workload evidence is the highest-value row type we have, and the one thing vendors can't publish for you.</p>
+
+<p class="muted" style="margin-top:2.5rem">Questions this page didn't answer are probably in the <a href="faq.html">FAQ</a>. Everything here — data, widget, proxy, judging pipeline — is open at <a href="https://github.com/Join-The-Wheel/model-screen">github.com/Join-The-Wheel/model-screen</a>.</p>
+</main>
+</body>
+</html>

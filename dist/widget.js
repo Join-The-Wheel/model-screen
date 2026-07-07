@@ -1,5 +1,5 @@
 // <model-screen> — embeddable AI-model screening widget.
-// Install:  <script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.1.0/dist/widget.js"></script>
+// Install:  <script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.2.0/dist/widget.js"></script>
 //           <model-screen></model-screen>
 // Everything runs in the visitor's browser: the matcher model (~34MB, cached)
 // downloads only on first use; the visitor's text never leaves the page.
@@ -7,6 +7,7 @@
 
 const DATA_BASE = new URL('../data/', import.meta.url).href;
 const REPO = 'https://github.com/Join-The-Wheel/model-screen';
+const SITE = 'https://join-the-wheel.github.io/model-screen';
 const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
 const AXIS_GROUPS = {
@@ -41,13 +42,28 @@ const CSS = `
   .chip:hover { border-color:var(--accent); }
   .chip[aria-pressed="true"] { background:var(--chip-on); border-color:var(--accent); color:var(--accent); font-weight:600; }
   .chiphint { font-size:12.5px; color:var(--faint); margin:0 0 14px; }
+  .linklike { background:none; border:none; padding:0; font:inherit; font-size:12.5px; color:var(--accent); cursor:pointer;
+              text-decoration:underline; text-underline-offset:2px; }
+  .how { margin:14px 0 0; border:1px solid var(--line); border-radius:12px; background:var(--card); }
+  .how > summary { padding:11px 15px; font-size:14px; font-weight:600; color:var(--ink); }
+  .how > summary:hover { color:var(--accent); }
+  .how > div { padding:2px 17px 15px; font-size:14px; color:var(--muted); line-height:1.6; }
+  .how ol { margin:.4rem 0 .9rem; padding-left:1.25rem; }
+  .how li { margin:.4rem 0; }
+  .how strong, .how dt { color:var(--ink); }
+  .how dl { margin:.3rem 0 .9rem; }
+  .how dt { font-weight:600; margin-top:.55rem; }
+  .how dd { margin:0; }
+  .how a { color:var(--accent); text-decoration:none; }
+  .how a:hover { text-decoration:underline; }
+  .banner a { color:inherit; text-decoration:underline; text-underline-offset:2px; }
   .row { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
   .go { font:inherit; font-weight:600; background:var(--accent); color:#fff; border:0; border-radius:10px;
         padding:11px 24px; cursor:pointer; }
   .go:disabled { opacity:.5; cursor:wait; }
   .status { font-size:13px; color:var(--muted); }
   .mode { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  .mode select { font:inherit; font-size:13px; color:inherit; background:var(--card); border:1px solid var(--line);
+  .mode select, .how select { font:inherit; font-size:13px; color:inherit; background:var(--card); border:1px solid var(--line);
                  border-radius:8px; padding:3px 6px; }
   .banner { font-size:13px; color:var(--muted); border:1px dashed var(--line); border-radius:12px;
             padding:11px 15px; margin:1.6rem 0 1.1rem; background:var(--card); }
@@ -101,26 +117,46 @@ const HTML = `
   </div>
   <textarea id="q" aria-label="Describe your use case" placeholder="e.g. Summarize long legal contracts and flag risky clauses. Privacy matters and budget is tight."></textarea>
   <div class="chips" role="group" aria-label="Constraints">
-    <button class="chip" data-k="grounded" aria-pressed="false">answers from my docs/data</button>
-    <button class="chip" data-k="privacy" aria-pressed="false">must run privately / self-host</button>
-    <button class="chip" data-k="budget" aria-pressed="false">budget-sensitive</button>
-    <button class="chip" data-k="faithful" aria-pressed="false">must not make things up</button>
+    <button class="chip" data-k="grounded" aria-pressed="false" title="Steers matching toward grounded (answers-from-your-documents) evidence and away from closed-book trivia tests">answers from my docs/data</button>
+    <button class="chip" data-k="privacy" aria-pressed="false" title="Hard filter: removes every API-only model and anything impractical to self-host, before scoring — exclusions are listed with reasons">must run privately / self-host</button>
+    <button class="chip" data-k="budget" aria-pressed="false" title="Published price ≲$3 per million output tokens nudges a model up; ≳$15 pushes it down">budget-sensitive</button>
+    <button class="chip" data-k="faithful" aria-pressed="false" title="Brings in all fabrication/hallucination evidence at full weight; if none exists for a model, flags it 'test before trusting'">must not make things up</button>
   </div>
-  <p class="chiphint">Chips carry the constraints prose can't reliably express — they act as hard filters and evidence weights.</p>
+  <p class="chiphint">Chips are guarantees, not hints — each filters or re-weights models directly, skipping text understanding. <button class="linklike" id="chipsWhy" type="button">what each chip does</button></p>
   <div class="row">
     <button class="go" id="go">Screen models</button>
-    <span class="status" id="status" role="status">runs entirely in your browser — nothing you type leaves this page</span>
-    <span class="mode"><label for="modeSel">matching</label>
-      <select id="modeSel"><option value="free" selected>evidence-direct</option><option value="axis">axis-mapped</option></select></span>
+    <span class="status" id="status" role="status"></span>
   </div>
-  <div class="banner">Screening, not scoring: results are an <strong>uncalibrated</strong> shortlist from published benchmarks, model cards and third-party trackers (data date <span id="dataDate">…</span>). Third-party-measured evidence outranks vendor claims. Where no evidence exists we say so — we never guess. Test before you trust.</div>
+  <details class="how" id="how">
+    <summary>How this works — what you'll get and how it's calculated</summary>
+    <div>
+      <ol>
+        <li><strong>Read.</strong> Your sentence is split into facets — the capabilities, constraints and quality bars you stated. The results begin by reading these back, so a misread is visible instead of silent.</li>
+        <li><strong>Match.</strong> Each facet retrieves the closest rows from a corpus of judged published evidence — benchmark results, model-card claims and third-party measurements for recent releases (<span id="corpusStats">hundreds of rows across ~two dozen models</span>) — every row carrying its source link.</li>
+        <li><strong>Filter &amp; weigh.</strong> Chips apply first (below). Then each matched row counts by how closely it matches, how much it's worth, and which way it cuts — <strong>adverse findings weigh 1.6×</strong> favorable ones, and third-party measurements outrank vendor claims.</li>
+        <li><strong>Rank.</strong> Models with at least 2 matched rows are ranked and the top 5 shown (beyond that, differences are noise). Models with less evidence are listed as "not enough evidence" — never silently scored zero. Ranks mean "strongest published case," never "will perform best" — no scores or grades, because a paper screen can order candidates but can't measure them.</li>
+      </ol>
+      <p class="h">What each chip does</p>
+      <dl>
+        <dt>answers from my docs/data</dt><dd>steers matching toward grounded (RAG / document) evidence, away from closed-book trivia</dd>
+        <dt>must run privately / self-host</dt><dd><strong>hard filter</strong> — removes API-only and impractical-to-host models before scoring; exclusions listed with reasons</dd>
+        <dt>budget-sensitive</dt><dd>published price ≲$3/M output tokens nudges up; ≳$15/M pushes down</dd>
+        <dt>must not make things up</dt><dd>pulls in all faithfulness evidence: measured problems push the model down with a visible warning; no evidence at all → an explicit "test before trusting"</dd>
+      </dl>
+      <p class="h">Matching mode (advanced)</p>
+      <p style="margin:.3rem 0 .5rem"><select id="modeSel" aria-label="Matching mode"><option value="free" selected>evidence-direct (default)</option><option value="axis">axis-mapped</option></select></p>
+      <p style="margin:0">Evidence-direct matches your facets straight against evidence rows — flexible, handles anything you can phrase. Axis-mapped first classifies your use case onto a fixed workload grid (task × difficulty × retrieval × response × format), then scores by evidence support for that shape — stiffer, but phrasing-independent.</p>
+      <p style="margin:.9rem 0 0">Full write-ups: <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a> · <a href="${REPO}" target="_blank" rel="noopener">data &amp; source</a></p>
+    </div>
+  </details>
+  <div class="banner">Screening, not scoring: an <strong>uncalibrated</strong> shortlist from published evidence (data date <span id="dataDate">…</span>) — admission to testing, never endorsement. Where no evidence exists we say so; we never guess. Test before you trust. <a href="${SITE}/methodology.html" target="_blank" rel="noopener">How it's calculated</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a></div>
   <div id="out" aria-live="polite"></div>
   <div class="fb" id="fbWrap" style="display:none">
     <strong style="font-size:15px">Tried one of these?</strong>
     <p class="none" style="margin:4px 0 8px">A sentence about how it actually went makes the next person's screen better. Never required.</p>
     <a class="go" style="display:inline-block; text-decoration:none" id="fbLink" target="_blank" rel="noopener">Share what happened ↗</a>
   </div>
-  <div class="foot">Evidence: vendor announcements, model cards, and open trackers — every claim carries its source link. Some third-party scores are withheld per the source's terms; we link out instead. Recommendations are admission-to-testing, never endorsements. <a href="${REPO}" target="_blank" rel="noopener">Data, methodology &amp; source</a>.</div>
+  <div class="foot">Evidence: vendor announcements, model cards, and open trackers — every claim carries its source link. Some third-party scores are withheld per the source's terms; we link out instead. Recommendations are admission-to-testing, never endorsements. <a href="${SITE}/methodology.html" target="_blank" rel="noopener">Methodology</a> · <a href="${SITE}/faq.html" target="_blank" rel="noopener">FAQ</a> · <a href="${REPO}" target="_blank" rel="noopener">Data &amp; source</a></div>
 `;
 
 class ModelScreen extends HTMLElement {
@@ -151,12 +187,26 @@ class ModelScreen extends HTMLElement {
     );
     this.$('q').addEventListener('keydown', (e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') this.$('go').click(); });
     this.$('go').addEventListener('click', () => this.screen());
+    this.$('chipsWhy').addEventListener('click', () => {
+      const d = this.$('how');
+      d.open = true;
+      d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
 
   connectedCallback() {
     // attributes are not readable in the constructor for createElement-built
     // elements — resolve the tier here instead
     this.apiBase = (this.getAttribute('api-base') || '').replace(/\/+$/, '') || null;
+    this.setStatusIdle();
+  }
+
+  // The privacy statement must match the tier actually in effect — the two
+  // modes make different promises and conflating them would be a lie.
+  setStatusIdle() {
+    this.$('status').textContent = this.apiBase
+      ? 'assisted mode: your text goes only to two zero-retention AI providers — never stored'
+      : 'runs entirely in your browser — nothing you type leaves this page';
   }
 
   // Heavy assets load on first use, never on page load — embedding this widget
@@ -173,6 +223,8 @@ class ModelScreen extends HTMLElement {
       Object.assign(this, { axes, corpus, glosses, providers });
       this.evidenceById = Object.fromEntries(corpus.evidence.map((e) => [e.id, e]));
       this.$('dataDate').textContent = corpus.generated;
+      this.$('corpusStats').textContent =
+        `${corpus.evidence.length} judged rows across ${corpus.models.length} releases, as of ${corpus.generated}`;
       if (this.apiBase) {
         const [gm3, am3] = await Promise.all([j('gloss-vectors-m3.json'), j('axes-vectors-m3.json')]);
         this.glosses = gm3; this.axes = am3;
@@ -318,7 +370,10 @@ class ModelScreen extends HTMLElement {
   srcBadge(e) {
     const tp = /third-party|leaderboard/i.test(e.sourceClass);
     const label = tp ? 'third-party' : /vendor/i.test(e.sourceClass) ? 'vendor' : (e.sourceClass.split(/[ (]/)[0] || 'source');
-    return `<span class="srcbadge${tp ? ' tp' : ''}">${this.esc(label)}</span>`;
+    const tip = tp ? 'Measured by someone other than the vendor — the strongest evidence class here'
+      : label === 'vendor' ? 'Vendor-reported — best case by construction; weighted accordingly'
+      : 'Community-relayed or secondary source';
+    return `<span class="srcbadge${tp ? ' tp' : ''}" title="${this.esc(tip)} — full provenance: ${this.esc(e.sourceClass)}">${this.esc(label)}</span>`;
   }
   evidenceLine(e, bad) {
     const score = e.scoreWithheld
@@ -339,8 +394,8 @@ class ModelScreen extends HTMLElement {
     return `<div class="card">
       <div class="head"><span class="rank">${rank}</span>
         <h3>${titleLink ? `<a href="${esc(titleLink)}" target="_blank" rel="noopener">${esc(r.m.name)}</a>` : esc(r.m.name)}</h3>
-        <span class="pill cov">${r.evidenceN} matched evidence rows</span>
-        ${r.evidenceN < 4 ? '<span class="pill thin">thin evidence — a lead, not a verdict</span>' : ''}</div>
+        <span class="pill cov" title="How many judged evidence rows matched your facets — coverage, not quality">${r.evidenceN} matched evidence rows</span>
+        ${r.evidenceN < 4 ? '<span class="pill thin" title="Fewer than 4 matched rows — one enthusiastic benchmark can carry the rank; worth five minutes in a playground, not a shortlist spot">thin evidence — a lead, not a verdict</span>' : ''}</div>
       <p class="meta">${esc(r.m.vendor)} · ${esc(r.m.released)} · ${r.m.weights === 'open' ? `open weights (${esc(r.m.license || 'license unclear')})` : 'API-only'} · ${esc(r.m.contextWindow)} context · ${esc(r.m.pricing)}${r.m.notes ? ' · ' + esc(r.m.notes) : ''}</p>
       ${why.length ? `<div class="sect"><p class="h">Why it screens in</p>${why.map((x) => this.evidenceLine(x.e, false)).join('')}</div>` : ''}
       ${warn.length ? `<div class="sect"><p class="h">Watch out</p>${warn.map((x) => this.evidenceLine(x.e, true)).join('')}</div>` : ''}

@@ -10,14 +10,18 @@
   @media (prefers-color-scheme: dark) { body { background:#1c1c1a; color:#ecebe4; } }
   main { max-width:780px; margin:0 auto; padding:2.75rem 1.25rem 4rem; }
   h1 { font-size:27px; font-weight:650; margin:0 0 4px; letter-spacing:-.01em; }
-  .sub { color:#6b6a64; margin:0 0 1.6rem; max-width:60ch; }
-  @media (prefers-color-scheme: dark) { .sub { color:#a5a49b; } }
+  .sub { color:#6b6a64; margin:0 0 1rem; max-width:60ch; }
+  .docs { font-size:14px; margin:0 0 1.6rem; display:flex; gap:14px; flex-wrap:wrap; }
+  .docs a { color:#6b6a64; text-decoration:none; border-bottom:1px solid #e2e1da; }
+  .docs a:hover { color:#0f6e56; border-color:#0f6e56; }
+  @media (prefers-color-scheme: dark) { .sub, .docs a { color:#a5a49b; } .docs a { border-color:#33332f; } .docs a:hover { color:#4dbf9c; border-color:#4dbf9c; } }
 </style>
 </head>
 <body>
 <main>
   <h1>Model Screen</h1>
   <p class="sub">Describe what you need an AI model for. We screen recent releases against <em>published</em> evidence — and tell you which are worth actually testing, which aren't, and where the evidence is silent.</p>
+  <p class="docs"><a href="methodology.html">How it's calculated</a> <a href="faq.html">FAQ</a> <a href="https://github.com/Join-The-Wheel/model-screen">Data &amp; source</a> <a href="https://github.com/Join-The-Wheel/model-screen#install-on-your-website">Install on your site</a></p>
   <model-screen api-base="https://model-screen-proxy-589124626756.us-central1.run.app"></model-screen>
 </main>
 <script type="module" src="dist/widget.js"></script>
