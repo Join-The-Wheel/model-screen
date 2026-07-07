@@ -260,7 +260,9 @@ class ModelScreen extends HTMLElement {
         const d = await this.api('/facets', { text: q });
         const texts = (d.facets || []).map((f) => f.text).filter(Boolean);
         if (texts.length) return texts.slice(0, 8);
-        return [];
+        // The extractor returns empty for terse topic-only input ("mathematical
+        // research") as well as for gibberish — rule-based splitting is the
+        // honest fallback; true gibberish matches nothing above the floor anyway.
       } catch { /* fall through to rule-based */ }
     }
     return this.splitFacets(q);
@@ -278,21 +280,34 @@ class ModelScreen extends HTMLElement {
     return facets.length ? facets : [q.trim()];
   }
 
+  // Relevance floors are embedding-model-specific: bge-small's cosine
+  // distribution sits ~0.1 above bge-m3's, so one shared floor either floods
+  // tier 0 (0.45 passes two-thirds of the corpus) or starves tier 1.
+  simParams() { return this.apiBase ? { floor: 0.45, shift: 0.4 } : { floor: 0.55, shift: 0.5 }; }
+
   async matchEvidenceDirect(q) {
     const facets = await this.getFacets(q);
     if (!facets.length) return { facets: ['(no screenable use case found)'], perModel: {} };
     const vecs = await this.embedBatch(facets);
+    const { floor, shift } = this.simParams();
     const perModel = {};
     for (let fi = 0; fi < facets.length; fi++) {
+      // Breadth over stacking: every row above the floor counts, but at most
+      // the 2 closest per model per facet. A global top-K here starved broad
+      // single-facet queries — 130+ relevant rows, 12 counted, nearly every
+      // model dumped into "insufficient evidence".
       const hits = Object.entries(this.glosses.vectors)
         .map(([id, v]) => [id, this.cos(vecs[fi], v)])
-        .sort((a, b) => b[1] - a[1]).slice(0, 12).filter(([, s]) => s >= 0.45);
+        .filter(([, s]) => s >= floor)
+        .sort((a, b) => b[1] - a[1]);
+      const taken = {};
       for (const [id, s] of hits) {
         const e = this.evidenceById[id];
         if (!e) continue;
+        if ((taken[e.model] = (taken[e.model] || 0) + 1) > 2) continue;
         const m = (perModel[e.model] ||= { score: 0, hits: {} });
         const sign = e.rowDir === 'low' ? -1.6 : e.rowDir === 'mixed' ? 0.2 : 1;
-        const contrib = (s - 0.4) * (e.rowW || 0.5) * sign;
+        const contrib = (s - shift) * (e.rowW || 0.5) * sign;
         m.score += contrib;
         if (!m.hits[id] || Math.abs(contrib) > Math.abs(m.hits[id])) m.hits[id] = contrib;
       }
@@ -410,7 +425,7 @@ class ModelScreen extends HTMLElement {
     const esc = this.esc.bind(this);
     const top = results.slice(0, 5);
     let h = `<p class="readback">We read your use case as ${mode === 'free' ? 'these facets' : 'this workload shape'}: ${facets.map((f) => `<span class="facet">${esc(f)}</span>`).join('')} <span class="note">— imperfect by design; the chips carry what prose can't.</span></p>`;
-    h += `<p class="summary">Screened ${this.corpus.models.length} recent releases → ${top.length} worth testing${excluded.length ? ` · ${excluded.length} excluded by your constraints` : ''}${insufficient.length ? ` · ${insufficient.length} lacked relevant published evidence` : ''}</p>`;
+    h += `<p class="summary">Screened ${this.corpus.models.length} recent releases → ${top.length} worth testing${excluded.length ? ` · ${excluded.length} excluded (availability or your constraints — itemized below)` : ''}${insufficient.length ? ` · ${insufficient.length} lacked relevant published evidence` : ''}</p>`;
     if (!top.length) h += `<p class="none">Nothing clears the screen with adequate evidence — which is itself the honest answer. Loosen a constraint, or treat this use case as test-it-yourself territory.</p>`;
     h += top.map((r, i) => this.card(r, i + 1)).join('');
     if (insufficient.length) h += `<details><summary>${insufficient.length} models had too little relevant published evidence to rank (absence is a finding, not a zero)</summary><p class="none">${insufficient.map((x) => esc(x.m.name)).join(' · ')}</p></details>`;
