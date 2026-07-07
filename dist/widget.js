@@ -1,6 +1,6 @@
-// <model-screen> — embeddable AI-model screening widget.
-// Install:  <script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.2.0/dist/widget.js"></script>
-//           <model-screen></model-screen>
+// <model-screen> — AI-model screening widget (custom element).
+// Serves the hosted screen at https://join-the-wheel.github.io/model-screen —
+// third-party embedding is not offered pre-1.0.
 // Everything runs in the visitor's browser: the matcher model (~34MB, cached)
 // downloads only on first use; the visitor's text never leaves the page.
 // Data + methodology: https://github.com/Join-The-Wheel/model-screen

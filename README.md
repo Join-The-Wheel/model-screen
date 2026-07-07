@@ -6,24 +6,17 @@ Describe what you need an AI model for, in a sentence. Model Screen checks recen
 
 **Docs:** [Live demo](https://join-the-wheel.github.io/model-screen/) · [Methodology](https://join-the-wheel.github.io/model-screen/methodology.html) (the full method: corpus, matching arithmetic, chips, limits) · [FAQ](https://join-the-wheel.github.io/model-screen/faq.html)
 
-## Install on your website
+## Using Model Screen
 
-```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/Join-The-Wheel/model-screen@v0.2.0/dist/widget.js"></script>
-<model-screen></model-screen>
-```
+The supported surface is the hosted screen: **[join-the-wheel.github.io/model-screen](https://join-the-wheel.github.io/model-screen/)**.
 
-That's the whole install. The widget renders in shadow DOM (your site's CSS is untouched), and the matching model (~34MB, cached by the browser) downloads only when a visitor actually uses it — embedding the widget costs your page nothing until then.
+Third-party embedding of the widget is **not offered yet** — the data format, widget API and licensing are still settling pre-1.0. Watch this repo if you want to hear when that changes.
 
-## Optional assisted mode (tier 1)
+## Architecture notes (maintainers)
 
-```html
-<model-screen api-base="https://your-proxy.example.com"></model-screen>
-```
+The widget (`dist/widget.js`, a `<model-screen>` custom element) has two tiers. Default: everything in the visitor's browser — the matching model (~34MB, cached) downloads on first use. Assisted (`api-base` attribute pointing at a deployed copy of [`server/`](server/)): use-case facets are extracted by gpt-oss-120b (Fireworks, ZDR by default) and embeddings run on hosted bge-m3 (DeepInfra, zero-retention) — multilingual, no browser download, ~$0.0003 per screen. Both components were selected by running the screening methodology on the selection problem itself. If the proxy is unreachable the widget silently falls back to fully-in-browser mode.
 
-Pointing `api-base` at a deployed copy of [`server/`](server/) upgrades parsing and matching: use-case facets are extracted by gpt-oss-120b (Fireworks, ZDR by default) and embeddings run on hosted bge-m3 (DeepInfra, zero-retention) — multilingual, no 34MB browser download, ~$0.0003 per screen. Both components were selected by running the screening methodology on the selection problem itself; the record lives upstream. If the proxy is unreachable the widget silently falls back to fully-in-browser mode.
-
-Deploy the proxy (Cloud Run example):
+Deploy the proxy (Cloud Run):
 
 ```bash
 gcloud run deploy model-screen-proxy --source server/ --region us-central1   --allow-unauthenticated --max-instances 2   --set-secrets FIREWORKS_API_KEY=fireworks-api-key:latest,DEEPINFRA_API_KEY=deepinfra-api-key:latest
