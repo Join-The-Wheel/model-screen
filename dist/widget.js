@@ -65,6 +65,9 @@ const CSS = `
   .mode { font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
   .mode select, .how select { font:inherit; font-size:13px; color:inherit; background:var(--card); border:1px solid var(--line);
                  border-radius:8px; padding:3px 6px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; background:var(--card); }
+  .seg button { font:inherit; font-size:12.5px; border:0; background:none; color:var(--muted); padding:4px 12px; cursor:pointer; }
+  .seg button[aria-pressed="true"] { background:var(--chip-on); color:var(--accent); font-weight:600; }
   .banner { font-size:13px; color:var(--muted); border:1px dashed var(--line); border-radius:12px;
             padding:11px 15px; margin:1.6rem 0 1.1rem; background:var(--card); }
   .readback { font-size:14px; color:var(--muted); margin:0 0 14px; }
@@ -125,6 +128,11 @@ const HTML = `
   <p class="chiphint">Chips are guarantees, not hints — each filters or re-weights models directly, skipping text understanding. <button class="linklike" id="chipsWhy" type="button">what each chip does</button></p>
   <div class="row">
     <button class="go" id="go">Screen models</button>
+    <span class="mode" id="tierWrap" style="display:none"><label>processing</label>
+      <span class="seg" role="group" aria-label="Processing mode">
+        <button id="tierApi" type="button" aria-pressed="true" title="Better parsing and multilingual matching — your text goes only to two zero-retention AI providers, never stored">assisted</button>
+        <button id="tierLocal" type="button" aria-pressed="false" title="Maximum privacy: everything runs on your device and nothing you type leaves this page (first use downloads a ~34MB matcher, cached after)">in-browser only</button>
+      </span></span>
     <span class="status" id="status" role="status"></span>
   </div>
   <details class="how" id="how">
@@ -197,13 +205,33 @@ class ModelScreen extends HTMLElement {
   connectedCallback() {
     // attributes are not readable in the constructor for createElement-built
     // elements — resolve the tier here instead
-    this.apiBase = (this.getAttribute('api-base') || '').replace(/\/+$/, '') || null;
-    this.setStatusIdle();
+    this.configuredApiBase = (this.getAttribute('api-base') || '').replace(/\/+$/, '') || null;
+    this.apiBase = this.configuredApiBase;
+    if (this.configuredApiBase) {
+      this.$('tierWrap').style.display = '';
+      this.$('tierApi').addEventListener('click', () => this.setTier(true));
+      this.$('tierLocal').addEventListener('click', () => this.setTier(false));
+    }
+    this.syncTierUI();
+  }
+
+  // Visitor-facing tier switch. Switching resets loaded assets: the two tiers
+  // use different embedding models, so their vector spaces are not mixable.
+  setTier(useApi) {
+    const want = useApi ? this.configuredApiBase : null;
+    if (want === this.apiBase) return;
+    this.apiBase = want;
+    this.ready = null;
+    this.syncTierUI();
   }
 
   // The privacy statement must match the tier actually in effect — the two
   // modes make different promises and conflating them would be a lie.
-  setStatusIdle() {
+  syncTierUI() {
+    if (this.configuredApiBase) {
+      this.$('tierApi').setAttribute('aria-pressed', String(!!this.apiBase));
+      this.$('tierLocal').setAttribute('aria-pressed', String(!this.apiBase));
+    }
     this.$('status').textContent = this.apiBase
       ? 'assisted mode: your text goes only to two zero-retention AI providers — never stored'
       : 'runs entirely in your browser — nothing you type leaves this page';
@@ -450,6 +478,7 @@ class ModelScreen extends HTMLElement {
     } catch (e) {
       if (this.apiBase) {
         this.apiBase = null; this.ready = null;
+        this.syncTierUI();
         this.$('status').textContent = 'assisted mode unavailable — retrying fully in-browser…';
         this.$('go').disabled = false;
         return this.screen();
