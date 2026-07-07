@@ -63,7 +63,11 @@ def allow(ip: str) -> bool:
 def upstream(url: str, key: str, body: dict, timeout: int = 45) -> dict:
     req = urllib.request.Request(
         url, data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {key}", "content-type": "application/json"})
+        headers={"Authorization": f"Bearer {key}", "content-type": "application/json",
+                 "Accept": "application/json",
+                 # Cloudflare (fronting Fireworks) 1010-blocks the default
+                 # python-urllib signature from datacenter IPs — identify honestly
+                 "User-Agent": "model-screen-proxy/0.1 (+https://github.com/Join-The-Wheel/model-screen)"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
